@@ -1,0 +1,18 @@
+# Python
+__pycache__/
+__init__.py
+dict/__pycache__/
+*.pyc
+
+# SQLite
+*.db
+
+dict/raw
+/data/
+extension/data
+flite/
+
+.DS_Store
+.clj-kondo
+node_modules/
+.lsp

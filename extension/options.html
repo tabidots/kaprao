@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <title>Kaprao Browser Extension Options</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            padding: 20px;
+            max-width: 500px;
+            font-size: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .setting {
+            display: grid;
+            align-items: flex-end;
+            grid-template-columns: 6fr 4fr;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+        }
+
+        select {
+            padding: 5px;
+            width: 100%;
+        }
+
+        .saved-indicator {
+            color: green;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .saved-indicator.show {
+            opacity: 1;
+        }
+        
+        .shortcut-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        .shortcut-item:last-child {
+            border-bottom: none;
+        }
+        
+        .shortcut-keys {
+            font-family: monospace;
+            background: #e8f4fc;
+            padding: 4px 8px;
+            border-radius: 4px;
+            border: 1px solid #b3e0ff;
+        }
+        
+        code {
+            background: #f1f1f1;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Menlo', 'Consolas', 'Liberation Mono', 'Courier New', monospace;
+        }
+        
+        ul {
+            padding-left: 20px;
+        }
+        
+        li {
+            margin: 8px 0;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="setting">
+        <label for="theme">Theme</label>
+        <select id="theme">
+            <option value="system">System</option>
+            <option value="light">Light</option>
+            <option value="dark">Dark</option>
+        </select>
+    </div>
+
+    <div class="setting">
+        <label for="font">Thai font style</label>
+        <select id="font">
+            <option value="loopless">Loopless</option>
+            <option value="looped">Looped</option>
+            <option value="playful">Playful</option>
+            <option value="handwritten">Handwritten</option>
+        </select>
+    </div>
+
+    <div>
+        <label>
+            Current Shortcuts
+            <a href="#" id="open-shortcuts">(change)</a>
+        </label>
+        <ul id="shortcuts-list">
+            <li class="shortcut-item">
+                <span class="description">Toggle extension on/off</span>
+                <code id="activation-shortcut"></code>
+            </li>
+            <li class="shortcut-item">
+                <span class="description">Speak highlighted word</span>
+                <code id="speak-shortcut"></code>
+            </li>
+            <li class="shortcut-item">
+                <span class="description">Change to next font</span>
+                <code id="font-shortcut"></code>
+            </li>
+        </ul>
+    
+    </div>
+
+    <div class="saved-indicator" id="saved">✓ Settings saved</div>
+
+    <script src="options.js"></script>
+</body>
+
+</html>

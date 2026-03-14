@@ -1,0 +1,27 @@
+<div class="entry">
+    {{#if roman}}
+        <div class="phonetic">{{joinSyllables roman}}</div>
+    {{/if}}
+    <div class="senses">
+        {{#each glosses}}
+            {{#if classifier}}
+                <span class="classifier">
+                    [<em>classifier{{#if (gt classifier.length 1)}}s{{/if}}:</em> 
+                    {{#each classifier}}
+                        {{#if @index}}, {{/if}}
+                        <span lang="th">{{thai}}</span>
+                        <strong>{{roman}}</strong>{{/each}}]
+                </span>
+            {{/if}}
+            <span class="sense {{#if (eq ../glosses.length 1)}}single{{/if}}">
+                {{if pos}}
+                    <span class="pos">{{pos}}</span>
+                {{/if}}
+                {{#each tags}}
+                    <span class="tag">{{this}}</span>
+                {{/each}}
+                {{{spanifyThai en}}}
+            </span>
+        {{/each}}
+    </div>
+</div>

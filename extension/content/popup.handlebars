@@ -1,0 +1,22 @@
+<div class="entry">
+    <div class="headword">
+        {{match.surface}}
+    </div>
+
+    {{#each match.entries}}
+    {{> entryBlock}}
+    {{/each}}
+</div>
+
+{{#if innerSegments}}
+<div class="segments">
+    {{#each innerSegments}}
+    <div class="segment">
+        <div class="headword">{{surface}}</div>
+        {{#each entries}}
+        {{> entryBlock}}
+        {{/each}}
+    </div>
+    {{/each}}
+</div>
+{{/if}}
