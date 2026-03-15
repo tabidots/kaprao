@@ -1,7 +1,5 @@
 // word-tracker.js
 import { HighlightOverlay } from './highlighter.js';
-import { ThaiPrefixScanner } from './segmenter.js';
-import { getData } from './data-loader.js';
 
 function graphemeIndexToCharOffset(graphemes, gIndex) {
     gIndex = Math.min(gIndex, graphemes.length); // HARD SAFETY

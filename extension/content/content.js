@@ -1,4 +1,3 @@
-import { initializeData } from "./data-loader.js";
 import { WordTracker } from './word-tracker.js';
 import { PopupManager } from './popup-manager.js';
 import { SettingsManager } from './settings.js';
@@ -41,16 +40,6 @@ function registerHandlebarsHelpers() {
 let settingsManager;
 let popupManager;
 let wordTracker;
-let dataLoaded = false;
-
-async function ensureInitialized() {
-    if (dataLoaded) return;
-
-    console.log('Loading Kaprao dictionary data...');
-    await initializeData();
-    dataLoaded = true;
-    console.log('Kaprao dictionary data loaded');
-}
 
 async function init() {
     try {
@@ -65,9 +54,8 @@ async function init() {
         wordTracker = new WordTracker(popupManager);
 
         // Check initial state
-        chrome.runtime.sendMessage({ action: 'getKapraoState' }, async (response) => {
+        chrome.runtime.sendMessage({ action: 'getKapraoState' }, (response) => {
             if (response && response.enabled === true) {
-                await ensureInitialized();
                 wordTracker.start();
             }
         });
@@ -77,10 +65,9 @@ async function init() {
     }
 }
 
-chrome.runtime.onMessage.addListener(async (message) => {
+chrome.runtime.onMessage.addListener((message) => {
     if (message.action === 'enableKaprao') {
         if (message.enabled) {
-            await ensureInitialized();
             wordTracker.start();
         } else {
             wordTracker.stop();

@@ -107,10 +107,12 @@ async function ensureDictionaryLoaded() {
     return scanner;
 }
 
+const DATA_VERSION = 'v1';
+
 async function loadDictionary() {
     console.log('Loading dictionary in background...');
 
-    const url = chrome.runtime.getURL('data/thai_en.json.gz');
+    const url = chrome.runtime.getURL(`data/thai_en.json.gz?v=${DATA_VERSION}`);
     const response = await fetch(url);
     const blob = await response.blob();
     const ds = new DecompressionStream('gzip');

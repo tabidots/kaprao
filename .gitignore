@@ -10,6 +10,7 @@ dict/__pycache__/
 dict/raw
 /data/
 extension/data
+extension.zip
 flite/
 
 .DS_Store

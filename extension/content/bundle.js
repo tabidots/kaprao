@@ -7,46 +7,6 @@
     return mod || (0, cb[__getOwnPropNames(cb)[0]])((mod = { exports: {} }).exports, mod), mod.exports;
   };
 
-  // extension/content/data-loader.js
-  async function loadGzipJson(url) {
-    const response = await fetch(url);
-    const blob = await response.blob();
-    const ds = new DecompressionStream("gzip");
-    const decompressedStream = blob.stream().pipeThrough(ds);
-    const text = await new Response(decompressedStream).text();
-    return JSON.parse(text);
-  }
-  async function initializeData() {
-    if (loaded) return;
-    loaded = true;
-    const dataUrl = chrome.runtime.getURL(`data/thai_en.json.gz?v=${DATA_VERSION}`);
-    data.thaiEn = await loadGzipJson(dataUrl);
-    data.thaiEn.forEach((entry, entryIndex) => {
-      for (const surface of [entry.thai, ...entry.variants]) {
-        data.maxWordLength = Math.max(data.maxWordLength, surface.length);
-        if (!data.index.has(surface)) {
-          data.index.set(surface, []);
-        }
-        data.index.get(surface).push({
-          index: entryIndex,
-          isVariant: surface !== entry.thai
-        });
-      }
-    });
-  }
-  var DATA_VERSION, data, loaded;
-  var init_data_loader = __esm({
-    "extension/content/data-loader.js"() {
-      DATA_VERSION = "v1";
-      data = {
-        thaiEn: [],
-        index: /* @__PURE__ */ new Map(),
-        maxWordLength: 0
-      };
-      loaded = false;
-    }
-  });
-
   // extension/content/highlighter.js
   var HighlightOverlay;
   var init_highlighter = __esm({
@@ -173,12 +133,6 @@
     }
   });
 
-  // extension/content/segmenter.js
-  var init_segmenter = __esm({
-    "extension/content/segmenter.js"() {
-    }
-  });
-
   // extension/content/word-tracker.js
   function graphemeIndexToCharOffset(graphemes, gIndex) {
     gIndex = Math.min(gIndex, graphemes.length);
@@ -197,8 +151,6 @@
   var init_word_tracker = __esm({
     "extension/content/word-tracker.js"() {
       init_highlighter();
-      init_segmenter();
-      init_data_loader();
       WordTracker = class {
         constructor(popupManager) {
           this.popupManager = popupManager;
@@ -262,14 +214,6 @@
           offset >= this.currentCapture.startChar && offset < this.currentCapture.endChar) {
             return;
           }
-          console.log("\u{1F4E4} SENDING:", {
-            text,
-            textType: typeof text,
-            textLength: text?.length,
-            offset,
-            offsetType: typeof offset,
-            textPreview: text?.substring(0, 50)
-          });
           const response = await chrome.runtime.sendMessage({
             action: "kapraoSegment",
             text,
@@ -292,9 +236,7 @@
           );
           this.currentCapture = {
             text,
-            // ← Store text content
             node,
-            // ← Still keep node for highlighting
             startChar,
             endChar,
             entries: result.entries
@@ -521,7 +463,6 @@
   // extension/content/content.js
   var require_content = __commonJS({
     "extension/content/content.js"() {
-      init_data_loader();
       init_word_tracker();
       init_popup_manager();
       init_settings();
@@ -557,14 +498,6 @@
       var settingsManager;
       var popupManager;
       var wordTracker;
-      var dataLoaded = false;
-      async function ensureInitialized() {
-        if (dataLoaded) return;
-        console.log("Loading Kaprao dictionary data...");
-        await initializeData();
-        dataLoaded = true;
-        console.log("Kaprao dictionary data loaded");
-      }
       async function init() {
         try {
           settingsManager = new SettingsManager();
@@ -573,9 +506,8 @@
           popupManager = new PopupManager(settingsManager);
           await popupManager.init();
           wordTracker = new WordTracker(popupManager);
-          chrome.runtime.sendMessage({ action: "getKapraoState" }, async (response) => {
+          chrome.runtime.sendMessage({ action: "getKapraoState" }, (response) => {
             if (response && response.enabled === true) {
-              await ensureInitialized();
               wordTracker.start();
             }
           });
@@ -583,10 +515,9 @@
           console.error("Kaprao initialization error:", error);
         }
       }
-      chrome.runtime.onMessage.addListener(async (message) => {
+      chrome.runtime.onMessage.addListener((message) => {
         if (message.action === "enableKaprao") {
           if (message.enabled) {
-            await ensureInitialized();
             wordTracker.start();
           } else {
             wordTracker.stop();
