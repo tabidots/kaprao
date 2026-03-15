@@ -38,49 +38,64 @@ function registerHandlebarsHelpers() {
     })
 }
 
+let settingsManager;
+let popupManager;
+let wordTracker;
+let dataLoaded = false;
+
+async function ensureInitialized() {
+    if (dataLoaded) return;
+
+    console.log('Loading Kaprao dictionary data...');
+    await initializeData();
+    dataLoaded = true;
+    console.log('Kaprao dictionary data loaded');
+}
+
 async function init() {
     try {
-        const settingsManager = new SettingsManager();
+        settingsManager = new SettingsManager();
         await settingsManager.load();
 
-        await initializeData();
         registerHandlebarsHelpers();
 
-        const popupManager = new PopupManager(settingsManager);
+        popupManager = new PopupManager(settingsManager);
         await popupManager.init();
 
-        const wordTracker = new WordTracker(popupManager);
+        wordTracker = new WordTracker(popupManager);
 
-        // Ask background for this tab's state
-        chrome.runtime.sendMessage({ action: 'getKapraoState' }, (response) => {
+        // Check initial state
+        chrome.runtime.sendMessage({ action: 'getKapraoState' }, async (response) => {
             if (response && response.enabled === true) {
+                await ensureInitialized();
                 wordTracker.start();
             }
-        });
-
-        chrome.runtime.onMessage.addListener((message) => {
-            if (message.action === 'enableKaprao') {
-                if (message.enabled) {
-                    wordTracker.start();
-                } else {
-                    wordTracker.stop();
-                }
-                console.log('Kaprao extension', message.enabled ? 'enabled' : 'disabled');
-            } else if (message.action === 'kapraoSettingsChanged') {
-                // Settings manager already handles this via onChanged listener
-                // Just update the settings
-                settingsManager.settings = message.settings;
-                settingsManager.notifyListeners();
-            } else if (message.action === 'speakCurrent') {
-                const audioElement = popupManager.popup.querySelector("#shortcut-hint");
-                wordTracker.highlightOverlay.speakCurrent(audioElement);
-            }
-
         });
 
     } catch (error) {
         console.error('Kaprao initialization error:', error);
     }
 }
+
+chrome.runtime.onMessage.addListener(async (message) => {
+    if (message.action === 'enableKaprao') {
+        if (message.enabled) {
+            await ensureInitialized();
+            wordTracker.start();
+        } else {
+            wordTracker.stop();
+        }
+        console.log('Kaprao extension', message.enabled ? 'enabled' : 'disabled');
+    } else if (message.action === 'kapraoSettingsChanged') {
+        // Settings manager already handles this via onChanged listener
+        // Just update the settings
+        settingsManager.settings = message.settings;
+        settingsManager.notifyListeners();
+    } else if (message.action === 'speakCurrent') {
+        const audioElement = popupManager.popup.querySelector("#shortcut-hint");
+        wordTracker.highlightOverlay.speakCurrent(audioElement);
+    }
+
+});
 
 init();

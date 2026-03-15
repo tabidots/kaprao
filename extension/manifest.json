@@ -1,8 +1,8 @@
 {
     "manifest_version": 3,
     "name": "Kaprao Thai Popup Dictionary",
-    "version": "1.0.0",
-    "description": "Inline Thai pronunciation and gloss annotations",
+    "version": "1.0.1",
+    "description": "Popup dictionary for Thai: Hover for instant segmentation, definitions, and romanization.",
     "icons": {
         "16": "img/icon-16.png",
         "48": "img/icon-48.png",

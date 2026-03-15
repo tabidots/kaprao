@@ -43,9 +43,5 @@ export async function initializeData() {
 }
 
 export function getData() {
-    return Object.freeze({
-        thaiEn: data.thaiEn,
-        index: data.index,
-        maxWordLength: data.maxWordLength
-    });
+    return data;
 }
