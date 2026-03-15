@@ -24,7 +24,7 @@ export class WordTracker {
         this.highlightOverlay = new HighlightOverlay();
         this.enabled = true;
 
-        this.scanner = new ThaiPrefixScanner(getData());
+        // this.scanner = new ThaiPrefixScanner(getData());
         this.segmentCache = new WeakMap();
 
         this.currentCapture = null; // Cache current word bounds
@@ -103,16 +103,23 @@ export class WordTracker {
         }
 
         // Check if we're still within the same word bounds
+        // Compare by text content AND bounds, not DOM node reference
         if (this.currentCapture &&
-            this.currentCapture.node === node &&
+            this.currentCapture.text === text &&  // ← Compare text instead of node
             offset >= this.currentCapture.startChar &&
             offset < this.currentCapture.endChar) {
             // Still in same word, no need to recompute
             return;
         }
 
-        // Find which segment contains the cursor
-        const result = this.scanner.getAt(node, text, offset);
+        const response = await chrome.runtime.sendMessage({
+            action: 'kapraoSegment',
+            text: text,
+            offset: offset
+        });
+        console.log('📥 RECEIVED:', response);
+
+        const result = response?.result;
         
         if (!result) {
             this.highlightOverlay.clearAll();
@@ -131,8 +138,8 @@ export class WordTracker {
             startGi + match.length
         );
 
-        // Cache current word bounds
         this.currentCapture = {
+            text: text, 
             node: node,
             startChar,
             endChar,

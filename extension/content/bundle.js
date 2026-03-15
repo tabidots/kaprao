@@ -34,9 +34,6 @@
       }
     });
   }
-  function getData() {
-    return data;
-  }
   var DATA_VERSION, data, loaded;
   var init_data_loader = __esm({
     "extension/content/data-loader.js"() {
@@ -177,240 +174,8 @@
   });
 
   // extension/content/segmenter.js
-  function isValidWordStart(text, pos) {
-    if (pos >= text.length) return false;
-    const ch = text[pos];
-    if (DIACRITICS.includes(ch) || DEPENDENT_VOWELS.includes(ch)) {
-      return false;
-    }
-    if (pos > 0 && INDEPENDENT_VOWELS.includes(text[pos - 1])) {
-      return false;
-    }
-    if (pos > 0 && text[pos - 1] === "\u0E31") {
-      return false;
-    }
-    return true;
-  }
-  function isValidWordEnd(text, pos) {
-    if (pos > text.length) return false;
-    const remainder = text.substring(pos);
-    if (remainder.length === 0) return true;
-    const nextChar = remainder[0];
-    const nextNextChar = remainder.length > 1 ? remainder[1] : "";
-    if (DEPENDENT_VOWELS.includes(nextChar) || DIACRITICS.includes(nextChar)) {
-      return false;
-    }
-    if (nextNextChar === "\u0E4C") {
-      return false;
-    }
-    return true;
-  }
-  function isBetter(a, b, fullSurface) {
-    if (!b) return true;
-    const aIsWhole = a.length === 1 && a[0].surface === fullSurface;
-    const bIsWhole = b.length === 1 && b[0].surface === fullSurface;
-    if (aIsWhole && !bIsWhole) return false;
-    if (!aIsWhole && bIsWhole) return true;
-    return a.length < b.length;
-  }
-  function canHavePOS(seg, targetPOSstart) {
-    return seg.entries.some((e) => e.glosses?.some((g) => g.pos?.startsWith(targetPOSstart)));
-  }
-  var DEPENDENT_VOWELS, INDEPENDENT_VOWELS, DIACRITICS, ThaiPrefixScanner;
   var init_segmenter = __esm({
     "extension/content/segmenter.js"() {
-      DEPENDENT_VOWELS = "\u0E31\u0E32\u0E34\u0E35\u0E36\u0E37\u0E38\u0E39\u0E33\u0E30";
-      INDEPENDENT_VOWELS = "\u0E40\u0E41\u0E42\u0E43\u0E44";
-      DIACRITICS = "\u0E4C\u0E48\u0E49\u0E4A\u0E4B\u0E47\u0E3A";
-      ThaiPrefixScanner = class {
-        constructor(data2) {
-          this.data = data2;
-          this.cache = /* @__PURE__ */ new WeakMap();
-          this.segCache = /* @__PURE__ */ new WeakMap();
-        }
-        _split(text) {
-          return [...text];
-        }
-        scoreSegmentation(segments) {
-          if (!segments || segments.length === 0) return -Infinity;
-          let score = -segments.length * 1e3;
-          for (let i = 0; i < segments.length; i++) {
-            const seg = segments[i];
-            score += seg.surface.length * 5;
-            if (i < segments.length - 1) {
-              const next = segments[i + 1];
-              if (canHavePOS(seg, "v") && canHavePOS(next, "n")) {
-                score += 120;
-              }
-            }
-            if (i > 0) {
-              const prev = segments[i - 1];
-              if (canHavePOS(prev, "v") && !canHavePOS(prev, "v. exp.") && canHavePOS(seg, "v. exp.")) {
-                score -= 80;
-              }
-            }
-          }
-          return score;
-        }
-        /**
-         * Unified DP segmentation
-         * @param {Array} g - Array of graphemes
-         * @param {Object} options - Configuration options
-         * @param {boolean} options.allowGaps - Allow single grapheme gaps when no match found
-         * @param {boolean} options.filterCompounds - Exclude compound entries
-         * @param {string} options.fullSurface - Full surface for isBetter comparison
-         * @returns {Array|null} - Segmentation or null if no complete path
-         */
-        segmentWithDP(g, options = {}) {
-          const {
-            allowGaps = true,
-            filterCompounds = false,
-            fullSurface = null
-          } = options;
-          const n = g.length;
-          const dp = Array(n + 1).fill(null);
-          dp[n] = [];
-          const text = g.join("");
-          for (let i = n - 1; i >= 0; i--) {
-            const charPos = g.slice(0, i).join("").length;
-            if (!isValidWordStart(text, charPos)) {
-              if (allowGaps && dp[i + 1] !== null) {
-                dp[i] = [
-                  {
-                    start: i,
-                    length: 1,
-                    surface: g[i],
-                    entries: []
-                  },
-                  ...dp[i + 1]
-                ];
-              }
-              continue;
-            }
-            let buf = "";
-            const maxLen = Math.min(this.data.maxWordLength, n - i);
-            for (let len = 1; len <= maxLen; len++) {
-              buf += g[i + len - 1];
-              const endCharPos = g.slice(0, i + len).join("").length;
-              if (!isValidWordEnd(text, endCharPos)) {
-                continue;
-              }
-              const hits = this.data.index.get(buf);
-              if (!hits) continue;
-              let validHits = hits;
-              if (filterCompounds) {
-                validHits = hits.filter((h) => !this.data.thaiEn[h.index].is_compound);
-                if (!validHits.length) continue;
-              }
-              if (dp[i + len] !== null) {
-                const candidate = [
-                  {
-                    start: i,
-                    length: len,
-                    surface: buf,
-                    entries: validHits.map((h) => ({
-                      ...this.data.thaiEn[h.index],
-                      isVariant: h.isVariant
-                    }))
-                  },
-                  ...dp[i + len]
-                ];
-                let shouldUpdate = false;
-                if (fullSurface) {
-                  shouldUpdate = isBetter(candidate, dp[i], fullSurface);
-                } else {
-                  if (!dp[i]) {
-                    shouldUpdate = true;
-                  } else {
-                    const candidateScore = this.scoreSegmentation(candidate);
-                    const currentScore = this.scoreSegmentation(dp[i]);
-                    shouldUpdate = candidateScore > currentScore;
-                  }
-                }
-                if (shouldUpdate) {
-                  dp[i] = candidate;
-                }
-              }
-            }
-            if (!dp[i] && allowGaps && dp[i + 1] !== null) {
-              dp[i] = [
-                {
-                  start: i,
-                  length: 1,
-                  surface: g[i],
-                  entries: []
-                },
-                ...dp[i + 1]
-              ];
-            }
-          }
-          return dp[0];
-        }
-        // Get or compute segmentation for entire text (main text segmentation)
-        getSegmentation(node, text) {
-          let cached = this.segCache.get(node);
-          if (cached && cached.text === text) {
-            return cached.segments;
-          }
-          const g = this._split(text);
-          const segments = this.segmentWithDP(g, {
-            allowGaps: true,
-            filterCompounds: false
-          });
-          this.segCache.set(node, { text, segments });
-          return segments;
-        }
-        // Segment compound surface (inner segmentation)
-        segmentSurface(node, surface) {
-          const g = this._split(surface);
-          return this.segmentWithDP(g, {
-            allowGaps: false,
-            // Don't allow gaps in compound segmentation
-            filterCompounds: true,
-            // Exclude compound entries
-            fullSurface: surface
-            // Use isBetter comparison
-          });
-        }
-        // Find which segment contains the cursor
-        findSegmentAtCursor(segments, cursorGi) {
-          if (!segments) return null;
-          for (const seg of segments) {
-            const endGi = seg.start + seg.length;
-            if (cursorGi >= seg.start && cursorGi < endGi) {
-              return seg;
-            }
-          }
-          return null;
-        }
-        getAt(node, text, offset) {
-          const segments = this.getSegmentation(node, text);
-          const g = this._split(text);
-          let pos = 0, gi = 0;
-          for (const c of g) {
-            if (pos >= offset) break;
-            pos += c.length;
-            gi++;
-          }
-          gi = Math.min(gi, g.length - 1);
-          const bestMatch = this.findSegmentAtCursor(segments, gi);
-          if (!bestMatch || !bestMatch.entries.length) {
-            return null;
-          }
-          let innerSegments = null;
-          if (bestMatch.entries.some((e) => e.is_compound)) {
-            const seg = this.segmentSurface(node, bestMatch.surface);
-            if (seg && seg.length > 1) {
-              innerSegments = seg;
-            }
-          }
-          return {
-            graphemes: g,
-            match: bestMatch,
-            innerSegments
-          };
-        }
-      };
     }
   });
 
@@ -439,7 +204,6 @@
           this.popupManager = popupManager;
           this.highlightOverlay = new HighlightOverlay();
           this.enabled = true;
-          this.scanner = new ThaiPrefixScanner(getData());
           this.segmentCache = /* @__PURE__ */ new WeakMap();
           this.currentCapture = null;
           this.cursorRange = document.createRange();
@@ -494,10 +258,25 @@
             this.cleanup();
             return;
           }
-          if (this.currentCapture && this.currentCapture.node === node && offset >= this.currentCapture.startChar && offset < this.currentCapture.endChar) {
+          if (this.currentCapture && this.currentCapture.text === text && // ← Compare text instead of node
+          offset >= this.currentCapture.startChar && offset < this.currentCapture.endChar) {
             return;
           }
-          const result = this.scanner.getAt(node, text, offset);
+          console.log("\u{1F4E4} SENDING:", {
+            text,
+            textType: typeof text,
+            textLength: text?.length,
+            offset,
+            offsetType: typeof offset,
+            textPreview: text?.substring(0, 50)
+          });
+          const response = await chrome.runtime.sendMessage({
+            action: "kapraoSegment",
+            text,
+            offset
+          });
+          console.log("\u{1F4E5} RECEIVED:", response);
+          const result = response?.result;
           if (!result) {
             this.highlightOverlay.clearAll();
             this.cleanup();
@@ -512,7 +291,10 @@
             startGi + match.length
           );
           this.currentCapture = {
+            text,
+            // ← Store text content
             node,
+            // ← Still keep node for highlighting
             startChar,
             endChar,
             entries: result.entries

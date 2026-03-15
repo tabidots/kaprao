@@ -1,3 +1,5 @@
+// background.js
+import { ThaiPrefixScanner } from './segmenter.js';
 
 // Track enabled state per tab
 const tabStates = new Map();
@@ -81,6 +83,69 @@ async function updateIcon(tabId) {
         console.log('Cannot update icon, tab does not exist:', tabId);
     }
 }
+
+/* ================
+/* DATA LOADING    
+/* ================ */
+
+let scanner = null;
+let loadingPromise = null;
+
+async function ensureDictionaryLoaded() {
+    // Already loaded
+    if (scanner) return scanner;
+
+    // Currently loading
+    if (loadingPromise) {
+        await loadingPromise;
+        return scanner;
+    }
+
+    // Start loading
+    loadingPromise = loadDictionary();
+    await loadingPromise;
+    return scanner;
+}
+
+async function loadDictionary() {
+    console.log('Loading dictionary in background...');
+
+    const url = chrome.runtime.getURL('data/thai_en.json.gz');
+    const response = await fetch(url);
+    const blob = await response.blob();
+    const ds = new DecompressionStream('gzip');
+    const decompressedStream = blob.stream().pipeThrough(ds);
+    const text = await new Response(decompressedStream).text();
+    const parsed = JSON.parse(text);
+
+    // Build index
+    const index = new Map();
+    let maxWordLength = 0;
+
+    parsed.forEach((entry, entryIndex) => {
+        for (const surface of [entry.thai, ...entry.variants]) {
+            maxWordLength = Math.max(maxWordLength, surface.length);
+
+            if (!index.has(surface)) {
+                index.set(surface, []);
+            }
+
+            index.get(surface).push({
+                index: entryIndex,
+                isVariant: surface !== entry.thai
+            });
+        }
+    });
+
+    const dictionaryData = {
+        thaiEn: parsed,
+        index: index,
+        maxWordLength: maxWordLength
+    };
+
+    scanner = new ThaiPrefixScanner(dictionaryData);
+}
+
 
 chrome.commands.onCommand.addListener(async (command) => {
     if (command === 'toggle-kaprao') {
@@ -182,6 +247,19 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         return true; // Keep channel open for async response
     }
 
+    if (message.action === 'kapraoSegment') {
+        ensureDictionaryLoaded()
+            .then((scanner) => {
+                const result = scanner.getAt(message.text, message.offset);
+                sendResponse({ result });
+            })
+            .catch(error => {
+                console.error('❌ Error in promise chain:', error);
+                sendResponse({ result: null, error: error.message });
+            });
+
+        return true; // Keep channel open
+    }
 
     // If message not recognized, don't respond
     return false;
