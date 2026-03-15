@@ -72,20 +72,10 @@ export class ThaiPrefixScanner {
         this.data = data;
         this.cache = new WeakMap();
         this.segCache = new WeakMap();
-        this.seg = new Intl.Segmenter("th", { granularity: "grapheme" });
     }
 
-    split(node, text) {
-        if (typeof node !== "object") {
-            console.error("INVALID CACHE KEY:", node);
-            return;
-        }
-        let c = this.cache.get(node);
-        if (c && c.text === text) return c.g;
-
-        const g = [...this.seg.segment(text)].map(s => s.segment);
-        this.cache.set(node, { text, g });
-        return g;
+    _split(text) {
+        return [...text];
     }
 
     scoreSegmentation(segments) {
@@ -242,7 +232,8 @@ export class ThaiPrefixScanner {
             return cached.segments;
         }
 
-        const g = this.split(node, text);
+        // Not cached - compute it
+        const g = this._split(text);  // Just split, no cache
         const segments = this.segmentWithDP(g, {
             allowGaps: true,
             filterCompounds: false
@@ -254,7 +245,8 @@ export class ThaiPrefixScanner {
 
     // Segment compound surface (inner segmentation)
     segmentSurface(node, surface) {
-        const g = this.split(node, surface);
+        // For compounds, don't cache at all (used less frequently)
+        const g = this._split(surface);
 
         return this.segmentWithDP(g, {
             allowGaps: false,          // Don't allow gaps in compound segmentation
@@ -277,9 +269,12 @@ export class ThaiPrefixScanner {
     }
 
     getAt(node, text, offset) {
-        const g = this.split(node, text);
+        // Use cached segmentation
+        const segments = this.getSegmentation(node, text);
 
-        // Find grapheme index at cursor
+        // Find grapheme index from offset
+        const g = this._split(text);  // Quick split for offset calculation
+
         let pos = 0, gi = 0;
         for (const c of g) {
             if (pos >= offset) break;
@@ -287,9 +282,6 @@ export class ThaiPrefixScanner {
             gi++;
         }
         gi = Math.min(gi, g.length - 1);
-
-        // Get consistent segmentation for entire text
-        const segments = this.getSegmentation(node, text);
 
         // Find which segment contains cursor
         const bestMatch = this.findSegmentAtCursor(segments, gi);

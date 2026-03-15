@@ -124,12 +124,11 @@ export class WordTracker {
 
         const startGi = match.start;
         const surface = match.surface;
-        match.lenGi ??= this.scanner.split(node, surface).length;
 
         const startChar = graphemeIndexToCharOffset(result.graphemes, startGi);
         const endChar = graphemeIndexToCharOffset(
             result.graphemes,
-            startGi + match.lenGi
+            startGi + match.length
         );
 
         // Cache current word bounds

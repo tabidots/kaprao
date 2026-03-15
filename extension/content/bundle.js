@@ -36,11 +36,6 @@
   }
   function getData() {
     return data;
-    return Object.freeze({
-      thaiEn: data.thaiEn,
-      index: data.index,
-      maxWordLength: data.maxWordLength
-    });
   }
   var DATA_VERSION, data, loaded;
   var init_data_loader = __esm({
@@ -232,18 +227,9 @@
           this.data = data2;
           this.cache = /* @__PURE__ */ new WeakMap();
           this.segCache = /* @__PURE__ */ new WeakMap();
-          this.seg = new Intl.Segmenter("th", { granularity: "grapheme" });
         }
-        split(node, text) {
-          if (typeof node !== "object") {
-            console.error("INVALID CACHE KEY:", node);
-            return;
-          }
-          let c = this.cache.get(node);
-          if (c && c.text === text) return c.g;
-          const g = [...this.seg.segment(text)].map((s) => s.segment);
-          this.cache.set(node, { text, g });
-          return g;
+        _split(text) {
+          return [...text];
         }
         scoreSegmentation(segments) {
           if (!segments || segments.length === 0) return -Infinity;
@@ -366,7 +352,7 @@
           if (cached && cached.text === text) {
             return cached.segments;
           }
-          const g = this.split(node, text);
+          const g = this._split(text);
           const segments = this.segmentWithDP(g, {
             allowGaps: true,
             filterCompounds: false
@@ -376,7 +362,7 @@
         }
         // Segment compound surface (inner segmentation)
         segmentSurface(node, surface) {
-          const g = this.split(node, surface);
+          const g = this._split(surface);
           return this.segmentWithDP(g, {
             allowGaps: false,
             // Don't allow gaps in compound segmentation
@@ -398,7 +384,8 @@
           return null;
         }
         getAt(node, text, offset) {
-          const g = this.split(node, text);
+          const segments = this.getSegmentation(node, text);
+          const g = this._split(text);
           let pos = 0, gi = 0;
           for (const c of g) {
             if (pos >= offset) break;
@@ -406,7 +393,6 @@
             gi++;
           }
           gi = Math.min(gi, g.length - 1);
-          const segments = this.getSegmentation(node, text);
           const bestMatch = this.findSegmentAtCursor(segments, gi);
           if (!bestMatch || !bestMatch.entries.length) {
             return null;
@@ -520,11 +506,10 @@
           const { match } = result;
           const startGi = match.start;
           const surface = match.surface;
-          match.lenGi ??= this.scanner.split(node, surface).length;
           const startChar = graphemeIndexToCharOffset(result.graphemes, startGi);
           const endChar = graphemeIndexToCharOffset(
             result.graphemes,
-            startGi + match.lenGi
+            startGi + match.length
           );
           this.currentCapture = {
             node,
