@@ -32,19 +32,30 @@ export class WordTracker {
 
         this.handleMouseMove = this.handleMouseMove.bind(this);
         this.handleMouseLeave = this.handleMouseLeave.bind(this);
+        this.handleClickOutside = this.handleClickOutside.bind(this);
     }
 
     start() {
         document.addEventListener('mousemove', this.handleMouseMove);
         document.addEventListener('mouseleave', this.handleMouseLeave);
+        
+        document.removeEventListener('mouseup', this.handleClickOutside);
+        document.addEventListener('mouseup', this.handleClickOutside);
         this.enabled = true;
     }
 
     stop() {
         document.removeEventListener('mousemove', this.handleMouseMove);
         document.removeEventListener('mouseleave', this.handleMouseLeave);
+        document.removeEventListener('mouseup', this.handleClickOutside);
         this.enabled = false;
         this.cleanup();
+    }
+
+    pause() {
+        document.removeEventListener('mousemove', this.handleMouseMove);
+        document.removeEventListener('mouseleave', this.handleMouseLeave);
+        this.enabled = false;
     }
 
     isCursorOverText(node, offset, x, y) {
@@ -70,7 +81,7 @@ export class WordTracker {
 
     async handleMouseMove(e) {
         // if (!this.enabled || this.isThrottled()) return;
-        if (!this.enabled ) return;
+        if (!this.enabled || this.popupManager.persisted) return;
 
         this.lastMouseEvent = e;
         this.popupManager.position(e.clientX, e.clientY);
@@ -115,7 +126,6 @@ export class WordTracker {
             text: text,
             offset: offset
         });
-        console.log('📥 RECEIVED:', response);
 
         const result = response?.result;
         
@@ -149,10 +159,19 @@ export class WordTracker {
     }
 
     handleMouseLeave() {
+        if (this.popupManager.persisted) return;
         this.cleanup();
     }
 
+    handleClickOutside(e) {
+        if (!this.popupManager.persisted) return;
+        if (e.composedPath().includes(this.popupManager.popup)) return;
+        this.popupManager.unpersist();
+        this.start();
+    }
+
     cleanup() {
+        if (this.popupManager.persisted) return;
         this.highlightOverlay.clearAll();
         this.popupManager.hide();
         this.currentCapture = null;

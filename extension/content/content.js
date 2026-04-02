@@ -55,7 +55,7 @@ async function init() {
 
         // Check initial state
         chrome.runtime.sendMessage({ action: 'getKapraoState' }, (response) => {
-            if (response && response.enabled === true) {
+            if (response?.enabled === true) {
                 wordTracker.start();
             }
         });
@@ -81,6 +81,13 @@ chrome.runtime.onMessage.addListener((message) => {
     } else if (message.action === 'speakCurrent') {
         const audioElement = popupManager.popup.querySelector("#shortcut-hint");
         wordTracker.highlightOverlay.speakCurrent(audioElement);
+    } else if (message.action === 'persistPopup') {
+        popupManager.togglePersist();
+        if (popupManager.persisted) {
+            wordTracker.pause();
+        } else {
+            wordTracker.start();
+        }
     }
 
 });

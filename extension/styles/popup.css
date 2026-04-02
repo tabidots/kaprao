@@ -33,6 +33,7 @@
     font-size: 14px;
     background-color: var(--background-color);
     color: var(--text-color);
+    border: 2px solid transparent;
     box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
     transition: max-width 0.5s ease-in-out, height 0.5s ease-in-out;
 
@@ -83,6 +84,10 @@
 
 #kaprao-popup[data-font="looped"] {
     --thai-font: system-ui, -apple-system, sans-serif;
+}
+
+#kaprao-popup.persisted {
+    border: 2px solid var(--highlight);
 }
 
 kbd {
@@ -242,10 +247,16 @@ li.tag:not(:last-child) {
     color: var(--soft-text-color);
     height: 20px;
     padding: 6px 20px 10px;
-    border-radius: 0 0 0 10px;
+    border-radius: 0 10px 0 10px;
     font-weight: 600;
     margin-top: 20px;
     transition: background-color 0.2s ease-in-out, color 0.2s ease-in-out;
+}
+
+#kaprao-popup.persisted #shortcut-hint {
+    top: 2px;
+    right: 2px;
+    padding: 4px 18px 10px 20px;
 }
 
 #shortcut-hint.playing {

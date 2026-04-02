@@ -1,7 +1,7 @@
 {
     "manifest_version": 3,
     "name": "Kaprao Thai Popup Dictionary",
-    "version": "1.0.1",
+    "version": "1.0.3",
     "description": "Popup dictionary for Thai: Hover for instant segmentation, definitions, and romanization.",
     "icons": {
         "16": "img/icon-16.png",
@@ -69,6 +69,13 @@
                 "default": "Alt+K",
                 "mac": "Alt+K"
             }
+        },
+        "persist-popup": {
+            "suggested_key": {
+                "mac": "Alt+S",
+                "default": "Alt+S"
+            },
+            "description": "Keep popup open"
         },
         "speak-current": {
             "suggested_key": {

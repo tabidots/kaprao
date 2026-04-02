@@ -163,17 +163,26 @@
           this.lastMouseMoveTime = 0;
           this.handleMouseMove = this.handleMouseMove.bind(this);
           this.handleMouseLeave = this.handleMouseLeave.bind(this);
+          this.handleClickOutside = this.handleClickOutside.bind(this);
         }
         start() {
           document.addEventListener("mousemove", this.handleMouseMove);
           document.addEventListener("mouseleave", this.handleMouseLeave);
+          document.removeEventListener("mouseup", this.handleClickOutside);
+          document.addEventListener("mouseup", this.handleClickOutside);
           this.enabled = true;
         }
         stop() {
           document.removeEventListener("mousemove", this.handleMouseMove);
           document.removeEventListener("mouseleave", this.handleMouseLeave);
+          document.removeEventListener("mouseup", this.handleClickOutside);
           this.enabled = false;
           this.cleanup();
+        }
+        pause() {
+          document.removeEventListener("mousemove", this.handleMouseMove);
+          document.removeEventListener("mouseleave", this.handleMouseLeave);
+          this.enabled = false;
         }
         isCursorOverText(node, offset, x, y) {
           this.cursorRange.setStart(node, offset);
@@ -188,7 +197,7 @@
           return false;
         }
         async handleMouseMove(e) {
-          if (!this.enabled) return;
+          if (!this.enabled || this.popupManager.persisted) return;
           this.lastMouseEvent = e;
           this.popupManager.position(e.clientX, e.clientY);
           const ele = document.elementFromPoint(e.clientX, e.clientY);
@@ -219,7 +228,6 @@
             text,
             offset
           });
-          console.log("\u{1F4E5} RECEIVED:", response);
           const result = response?.result;
           if (!result) {
             this.highlightOverlay.clearAll();
@@ -246,9 +254,17 @@
           this.popupManager.show(result);
         }
         handleMouseLeave() {
+          if (this.popupManager.persisted) return;
           this.cleanup();
         }
+        handleClickOutside(e) {
+          if (!this.popupManager.persisted) return;
+          if (e.composedPath().includes(this.popupManager.popup)) return;
+          this.popupManager.unpersist();
+          this.start();
+        }
         cleanup() {
+          if (this.popupManager.persisted) return;
           this.highlightOverlay.clearAll();
           this.popupManager.hide();
           this.currentCapture = null;
@@ -270,6 +286,7 @@
             speak: "Alt+3"
             // Default fallback
           };
+          this.persisted = false;
         }
         async init() {
           await this.createShadowPopup();
@@ -375,9 +392,30 @@
           this.popup.style.display = "flex";
         }
         hide() {
+          if (this.persisted) return;
           this.popup.style.display = "none";
         }
+        togglePersist() {
+          if (this.persisted) {
+            this.unpersist();
+          } else {
+            this.persist();
+          }
+        }
+        persist() {
+          if (this.popup.style.display === "none") return;
+          this.persisted = true;
+          this.popup.classList.add("persisted");
+          this.container.style.pointerEvents = "auto";
+        }
+        unpersist() {
+          this.persisted = false;
+          this.container.style.pointerEvents = "none";
+          this.popup.classList.remove("persisted");
+          this.hide();
+        }
         position(x, y) {
+          if (this.persisted) return;
           if (x + this.margin + this.popup.offsetWidth > window.innerWidth) {
             this.container.style.right = "0px";
             this.container.style.left = "unset";
@@ -507,7 +545,7 @@
           await popupManager.init();
           wordTracker = new WordTracker(popupManager);
           chrome.runtime.sendMessage({ action: "getKapraoState" }, (response) => {
-            if (response && response.enabled === true) {
+            if (response?.enabled === true) {
               wordTracker.start();
             }
           });
@@ -529,6 +567,13 @@
         } else if (message.action === "speakCurrent") {
           const audioElement = popupManager.popup.querySelector("#shortcut-hint");
           wordTracker.highlightOverlay.speakCurrent(audioElement);
+        } else if (message.action === "persistPopup") {
+          popupManager.togglePersist();
+          if (popupManager.persisted) {
+            wordTracker.pause();
+          } else {
+            wordTracker.start();
+          }
         }
       });
       init();

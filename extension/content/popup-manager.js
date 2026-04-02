@@ -6,6 +6,7 @@ export class PopupManager {
         this.shortcuts = {
             speak: "Alt+3", // Default fallback
         };
+        this.persisted = false;
     }
 
     async init() {
@@ -149,10 +150,35 @@ export class PopupManager {
     }
 
     hide() {
+        if (this.persisted) return;
         this.popup.style.display = 'none';
     }
 
+    togglePersist() {
+        if (this.persisted) {
+            this.unpersist();
+        } else {
+            this.persist();
+        }
+    }    
+
+    persist() {
+        if (this.popup.style.display === 'none') return; // Nothing to persist
+        this.persisted = true;
+        this.popup.classList.add('persisted'); // Optional: visual indicator
+        this.container.style.pointerEvents = 'auto';
+    }
+
+    unpersist() {
+        this.persisted = false;
+        this.container.style.pointerEvents = 'none';
+        this.popup.classList.remove('persisted');
+        this.hide();
+    }
+    
+
     position(x, y) {
+        if (this.persisted) return;
         if (x + this.margin + this.popup.offsetWidth > window.innerWidth) {
             this.container.style.right = '0px';
             this.container.style.left = 'unset';

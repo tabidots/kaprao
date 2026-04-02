@@ -69,6 +69,9 @@ async function displayCurrentShortcuts() {
         const fontShortcut = commands.find(command => command.description.includes('font'))?.shortcut;
         document.getElementById('font-shortcut').textContent = fontShortcut || 'Not set';
 
+        const persistShortcut = commands.find(command => command.description.includes('Keep'))?.shortcut;
+        document.getElementById('persist-shortcut').textContent = persistShortcut || 'Not set';
+
     } catch (error) {
         console.error('Error fetching shortcuts:', error);
     }

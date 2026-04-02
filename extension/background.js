@@ -180,6 +180,19 @@ chrome.commands.onCommand.addListener(async (command) => {
         });
     }
 
+    if (command === "persist-popup") {
+        // Send to content script
+        chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+            if (tabs[0]?.id) {
+                chrome.tabs.sendMessage(tabs[0].id, {
+                    action: "persistPopup"
+                }).catch(error => {
+                    console.log('Content script not ready:', error.message);
+                });
+            }
+        });
+    }
+
     if (command === "change-font") {
         // Cycle through fonts
         const fonts = ['loopless', 'looped', 'playful', 'handwritten'];
@@ -240,6 +253,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                     shortcuts.speak = command.shortcut || 'Alt+3';
                 } else if (command.name === '_execute_action' || command.name === 'toggle-kaprao') {
                     shortcuts.toggle = command.shortcut || 'Alt+K';
+                } else if (command.name === 'persist-popup') {
+                    shortcuts.persist = command.shortcut || 'Alt+S';
                 }
             });
             sendResponse({ success: true, shortcuts });
