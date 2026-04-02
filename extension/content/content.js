@@ -26,6 +26,7 @@ function registerHandlebarsHelpers() {
         roman = roman.replace(/ng•(?![ptkslmnhrwyjc]g?)/g, 'ng~');
         roman = roman.replace(/•/g, '');
         roman = roman.replace(/~/g, '•');
+        roman = roman.normalize('NFC');
         return roman;
     });
 

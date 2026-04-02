@@ -360,6 +360,7 @@
           this.shadow = shadow;
           this.applyTheme();
           this.applyFont();
+          this.applyPronunciation();
         }
         applyTheme() {
           if (!this.popup) return;
@@ -375,10 +376,16 @@
           const settings = this.settingsManager.getSettings();
           this.popup.setAttribute("data-font", settings.font);
         }
+        applyPronunciation() {
+          if (!this.popup) return;
+          const settings = this.settingsManager.getSettings();
+          this.popup.setAttribute("data-show-pronunciation", settings.showPronunciation);
+        }
         setupSettingsListener() {
           this.settingsManager.onChanged(() => {
             this.applyTheme();
             this.applyFont();
+            this.applyPronunciation();
           });
         }
         show(results) {
@@ -443,7 +450,8 @@
         constructor() {
           this.settings = {
             theme: "system",
-            font: "loopless"
+            font: "loopless",
+            showPronunciation: true
           };
           this.listeners = /* @__PURE__ */ new Set();
         }
@@ -451,7 +459,8 @@
           return new Promise((resolve) => {
             chrome.storage.sync.get({
               theme: "system",
-              font: "loopless"
+              font: "loopless",
+              showPronunciation: true
             }, (items) => {
               this.settings = items;
               this.notifyListeners();
@@ -524,6 +533,7 @@
           roman = roman.replace(/ng•(?![ptkslmnhrwyjc]g?)/g, "ng~");
           roman = roman.replace(/•/g, "");
           roman = roman.replace(/~/g, "\u2022");
+          roman = roman.normalize("NFC");
           return roman;
         });
         Handlebars.registerHelper("spanifyThai", function(text) {

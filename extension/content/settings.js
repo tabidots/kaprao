@@ -3,7 +3,8 @@ export class SettingsManager {
     constructor() {
         this.settings = {
             theme: 'system',
-            font: 'loopless'
+            font: 'loopless',
+            showPronunciation: true
         };
         this.listeners = new Set(); // Store multiple listeners
     }
@@ -12,7 +13,8 @@ export class SettingsManager {
         return new Promise((resolve) => {
             chrome.storage.sync.get({
                 theme: 'system',
-                font: 'loopless'
+                font: 'loopless',
+                showPronunciation: true
             }, (items) => {
                 this.settings = items;
                 this.notifyListeners(); // Notify all listeners

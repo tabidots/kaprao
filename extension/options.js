@@ -19,11 +19,13 @@ document.addEventListener('DOMContentLoaded', async () => {
 function refreshOptions() {
     chrome.storage.sync.get({
         theme: 'system',
-        font: 'loopless'
+        font: 'loopless',
+        showPronunciation: true
     }, (items) => {
         // Update UI even if values didn't change
         document.getElementById('theme').value = items.theme;
         document.getElementById('font').value = items.font;
+        document.getElementById('show-pronunciation').checked = items.showPronunciation;
         console.log('Options refreshed:', items);
     });
 }
@@ -32,7 +34,8 @@ function refreshOptions() {
 function saveSettings() {
     const settings = {
         theme: document.getElementById('theme').value,
-        font: document.getElementById('font').value
+        font: document.getElementById('font').value,
+        showPronunciation: document.getElementById('show-pronunciation').checked
     };
 
     chrome.storage.sync.set(settings, () => {
@@ -55,6 +58,7 @@ function saveSettings() {
 
 document.getElementById('theme').addEventListener('change', saveSettings);
 document.getElementById('font').addEventListener('change', saveSettings);
+document.getElementById('show-pronunciation').addEventListener('change', saveSettings);
 
 async function displayCurrentShortcuts() {
     try {

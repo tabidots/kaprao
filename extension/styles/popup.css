@@ -239,6 +239,10 @@ li.tag:not(:last-child) {
     color: var(--link);
 }
 
+#kaprao-popup[data-show-pronunciation="false"] .phonetic {
+    display: none;
+}
+
 #shortcut-hint {
     position: absolute;
     top: 0;

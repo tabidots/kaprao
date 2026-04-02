@@ -200,7 +200,8 @@ chrome.commands.onCommand.addListener(async (command) => {
         // Get current font setting
         const result = await chrome.storage.sync.get({ 
             theme: 'system', 
-            font: 'loopless'
+            font: 'loopless',
+            showPronunciation: true
         });
         const currentFont = result.font;
 

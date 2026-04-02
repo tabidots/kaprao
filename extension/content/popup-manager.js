@@ -107,6 +107,7 @@ export class PopupManager {
 
         this.applyTheme();
         this.applyFont();
+        this.applyPronunciation();
     }
 
     applyTheme() {
@@ -130,11 +131,19 @@ export class PopupManager {
         this.popup.setAttribute('data-font', settings.font);
     }
 
+    applyPronunciation() {
+        if (!this.popup) return;
+
+        const settings = this.settingsManager.getSettings();
+        this.popup.setAttribute('data-show-pronunciation', settings.showPronunciation);
+    }
+
     setupSettingsListener() {
         // Listen for settings changes
         this.settingsManager.onChanged(() => {
             this.applyTheme();
             this.applyFont();
+            this.applyPronunciation();
         });
     }
 
