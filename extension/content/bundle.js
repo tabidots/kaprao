@@ -423,6 +423,8 @@
         }
         position(x, y) {
           if (this.persisted) return;
+          this.container.style.left = "unset";
+          this.container.style.right = "unset";
           if (x + this.margin + this.popup.offsetWidth > window.innerWidth) {
             this.container.style.right = "0px";
             this.container.style.left = "unset";
@@ -436,6 +438,15 @@
           } else {
             this.container.style.top = `${y}px`;
             this.container.style.bottom = "unset";
+          }
+          if (this.container.style.top !== "unset") return;
+          const rect = this.container.getBoundingClientRect();
+          if (rect.top + this.margin > 0) return;
+          this.container.style.bottom = `${this.margin}px`;
+          if (x + this.margin + this.popup.offsetWidth > window.innerWidth) {
+            this.container.style.right = `${window.innerWidth - x + this.margin}px`;
+          } else {
+            this.container.style.left = `${x + this.margin}px`;
           }
         }
       };

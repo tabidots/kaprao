@@ -188,6 +188,10 @@ export class PopupManager {
 
     position(x, y) {
         if (this.persisted) return;
+
+        this.container.style.left = 'unset';
+        this.container.style.right = 'unset';
+
         if (x + this.margin + this.popup.offsetWidth > window.innerWidth) {
             this.container.style.right = '0px';
             this.container.style.left = 'unset';
@@ -202,6 +206,23 @@ export class PopupManager {
         } else {
             this.container.style.top = `${y}px`;
             this.container.style.bottom = 'unset';
+        }
+
+        // Popup can be comfortably placed under the word
+        if (this.container.style.top !== 'unset') return;
+
+        // We've moved the popup above the word, but check if the top is cut off
+        const rect = this.container.getBoundingClientRect();
+        if (rect.top + this.margin > 0) return; 
+        
+        // Bottom-align to minimize vert distance between the word and popup top
+        this.container.style.bottom = `${this.margin}px`;
+        
+        // Not enough room on right; move to the left of the word
+        if (x + this.margin + this.popup.offsetWidth > window.innerWidth) {
+            this.container.style.right = `${window.innerWidth - x + this.margin}px`;
+        } else {
+            this.container.style.left = `${x + this.margin}px`;
         }
     }
 
