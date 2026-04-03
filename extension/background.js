@@ -107,7 +107,7 @@ async function ensureDictionaryLoaded() {
     return scanner;
 }
 
-const DATA_VERSION = 'v1';
+const DATA_VERSION = 'v2';
 
 async function loadDictionary() {
     console.log('Loading dictionary in background...');
